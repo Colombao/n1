@@ -1,0 +1,140 @@
+{% extends 'layout.html' %} {% block title %} Lista de Usuários {% endblock %}
+{% block content %}
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+/>
+<style>
+  .table-header {
+    background-color: #2d3748;
+  }
+</style>
+<div class="container mx-auto">
+  <h1 class="text-3xl font-semibold mb-6 text-center">Lista de Usuários</h1>
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-gray-800 rounded-lg overflow-hidden shadow-lg">
+      <thead>
+        <tr class="table-header text-gray-300">
+          <th class="p-4 text-right">Status</th>
+          <th class="p-4 text-right">Nome</th>
+          <th class="p-4 text-right">Email</th>
+          <th class="p-4 text-right">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr class="hover:bg-gray-700 transition-colors">
+          <td class="p-4 text-right">{{ user.status }}</td>
+          <td class="p-4 text-right">{{ user.nome_real }}</td>
+          <td class="p-4 text-right">{{ user.login }}</td>
+          <td class="p-4 text-right">
+            <button
+              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onclick="openEditModal({{ user.id }}, '{{ user.nome_real }}', '{{ user.login }}')"
+            >
+              Editar
+            </button>
+            <button
+              class="{% if user.status == 'ativo' %}bg-red-500 hover:bg-red-700{% else %}bg-green-500 hover:bg-green-700{% endif %} text-white font-bold py-2 px-4 rounded"
+              onclick="{% if user.status == 'bloqueado' %}activeUser({{ user.id }}){% else %}deactivateUser({{ user.id }}){% endif %}"
+            >
+              {{ 'Desativar' if user.status == 'ativo' else 'Ativar' }}
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div
+  id="editModal"
+  class="fixed inset-0 flex items-center justify-center hidden z-50"
+>
+  <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+    <h2 class="text-xl font-semibold mb-4 text-gray-700">Editar Usuário</h2>
+    <form id="editUserForm" onsubmit="submitEdit(event)">
+      <input type="hidden" id="editUserId" name="id" />
+      <div class="mb-4">
+        <label for="editUserName" class="block text-gray-700">Nome:</label>
+        <input
+          type="text"
+          id="editUserName"
+          name="name"
+          required
+          class="border border-gray-300 rounded-md w-full p-2 text-gray-700"
+        />
+      </div>
+      <div class="mb-4">
+        <label for="editUserEmail" class="block text-gray-700">Email:</label>
+        <input
+          type="email"
+          id="editUserEmail"
+          name="email"
+          required
+          class="border border-gray-300 rounded-md w-full p-2 text-gray-700"
+        />
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          onclick="closeEditModal()"
+          class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditModal(userId, userName, userEmail) {
+    document.getElementById("editUserId").value = userId;
+    document.getElementById("editUserName").value = userName;
+    document.getElementById("editUserEmail").value = userEmail;
+    document.getElementById("editModal").classList.remove("hidden");
+  }
+
+  function closeEditModal() {
+    document.getElementById("editModal").classList.add("hidden");
+  }
+
+  function submitEdit(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const userId = formData.get("id");
+    const userName = formData.get("name");
+    const userEmail = formData.get("email");
+
+    fetch(`/editUser/${userId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ nome_real: userName, login: userEmail }),
+    })
+      .then((response) => {
+        if (response.ok) {
+          closeEditModal();
+          location.reload(); // Recarregar a página para ver as atualizações
+        } else {
+          alert("Erro ao editar usuário.");
+        }
+      })
+      .catch((error) => {
+        alert("Erro ao editar usuário: " + error);
+      });
+  }
+</script>
+
+{% endblock %}
