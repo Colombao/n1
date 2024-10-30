@@ -2,8 +2,25 @@ from flask import Flask, render_template, flash, redirect, url_for, request, get
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 app = Flask(__name__)
+app.secret_key = 'senha secreta dos cookies 😎'
+
+# Configuração do servidor de e-mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = 'seuemail@gmail.com'
+app.config['MAIL_PASSWORD'] = 'sua key do email'
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)
+
+# Serializador para gerar os tokens seguros
+s = URLSafeTimedSerializer(app.secret_key)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
 
@@ -100,6 +117,58 @@ def edit_user(id):
         return jsonify({"message": "Usuário editado com sucesso."}), 200
     else:
         return jsonify({"message": "Usuário não encontrado."}), 404
+
+# Rota para solicitar redefinição de senha
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        # Aqui vocês irão verificar no BD se o email recebido é válido,
+        email_exists = User.query.filter_by(login=email).first()
+        # ou seja, se é um usuário do sistema
+        if not email_exists:
+            flash('Email inválido', category='danger')
+            return jsonify({"message": "E-mail não encontrado na base de dados.", "status": "danger"}), 404
+
+        token = s.dumps(email, salt='password_recovery')
+        msg = Message('Redefinição de Senha',sender='joaoocolombo@gmail.com', recipients=[email])
+
+        link = url_for('reset_password', token=token, _external=True)
+        msg.body = f'Clique no link para redefinir a sua senha! {link}'
+        mail.send(msg)
+
+        return jsonify({"message": "E-mail enviado com sucesso.", "status": "primary"}), 200
+
+        return  redirect(url_for('login'))
+
+    return render_template('forgot_password.html')
+
+# Rota para redefinir a senha
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password_recovery', max_age=3600) # 1h
+    except SignatureExpired:
+        return '<h1> O link de redefinição de senha expirou</h1>'
+    except BadSignature:
+        return '<h1>Token inválido</h1>'
+    if request.method == 'POST':
+        new_password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        if new_password != confirm_password:
+            flash('Senhas não conferem', category='danger')
+            return jsonify({"message": "Senhas não conferem.", "status": "danger"}), 400
+            
+        user = User.query.filter_by(login=email).first()
+        user.senha = generate_password_hash(new_password, method='pbkdf2:sha256')
+
+        is_samePassword = check_password_hash(user.senha, new_password)
+
+        db.session.commit()
+
+        return jsonify({"message": "Senha redefinida com sucesso.", "status": "primary"}), 200
+
+    return render_template('reset_password.html')
 
 
 @app.route('/home')

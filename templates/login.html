@@ -52,6 +52,9 @@
         right: 20px;
         z-index: 9999;
       }
+      .text-smaller {
+        font-size: 0.8rem;
+      }
     </style>
   </head>
   <body>
@@ -89,6 +92,12 @@
             Não tem uma conta?
             <button class="toggle-btn" id="showRegister">Cadastre-se</button>
           </p>
+          <p>
+            Esqueceu a senha?
+            <a href="/forgot_password" class="text-decoration-none"
+              >Recuperar</a
+            >
+          </p>
         </div>
       </div>
 
@@ -106,7 +115,7 @@
               required
             />
           </div>
-          <div class="form-group mb-3">
+          <div class="form-group mb-3 text-smaller">
             <label for="email">Email:</label>
             <input
               type="email"
@@ -163,7 +172,6 @@
       // Função para exibir toast
       function showToast(message, status) {
         const toastContainer = document.getElementById("toastContainer");
-
         const toastHTML = `
           <div class="toast align-items-center text-white bg-${status} border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
