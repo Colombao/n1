@@ -74,8 +74,8 @@ def register():
 
 @app.route('/users')
 def users():
-    users = User.query.all()
-    
+    page = request.args.get('page', 1, type=int)
+    users = User.query.paginate(page=page, per_page=2)
     return render_template('users.html', users=users)
 
 @app.route('/usersDesactive/<int:id>', methods=['POST'])

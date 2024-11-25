@@ -23,7 +23,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for user in users %}
+        {% for user in users.items %}
         <tr class="hover:bg-gray-700 transition-colors">
           <td class="p-4 text-right">{{ user.status }}</td>
           <td class="p-4 text-right">{{ user.nome_real }}</td>
@@ -46,6 +46,29 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+  <div class="flex justify-center mt-4">
+    {% if users.has_prev %}
+    <a
+      href="{{ url_for('users', page=users.prev_num) }}"
+      class="px-4 py-2 mx-1 bg-gray-700 text-white rounded"
+      >&larr;</a
+    >
+    {% endif %} {% for page_num in users.iter_pages() %} {% if page_num %}
+    <a
+      href="{{ url_for('users', page=page_num) }}"
+      class="px-4 py-2 mx-1 {% if page_num == users.page %}bg-blue-500 text-white{% else %}bg-gray-300{% endif %} rounded"
+      >{{ page_num }}</a
+    >
+    {% else %}
+    <span class="px-4 py-2 mx-1">...</span>
+    {% endif %} {% endfor %} {% if users.has_next %}
+    <a
+      href="{{ url_for('users', page=users.next_num) }}"
+      class="px-4 py-2 mx-1 bg-gray-700 text-white rounded"
+      >&rarr;</a
+    >
+    {% endif %}
   </div>
 </div>
 
@@ -135,6 +158,36 @@
         alert("Erro ao editar usuário: " + error);
       });
   }
+  const activeUser = (userId) => {
+    fetch(`/usersActive/${userId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.ok) {
+          location.reload(); // Recarregar a página para ver as atualizações
+        } else {
+          alert("Erro ao ativar usuário.");
+        }
+      })
+      .catch((error) => {
+        alert("Erro ao ativar usuário: " + error);
+      });
+  };
+  const deactivateUser = (userId) => {
+    fetch(`/usersDesactive/${userId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.ok) {
+          location.reload(); // Recarregar a página para ver as atualizações
+        } else {
+          alert("Erro ao desativar usuário.");
+        }
+      })
+      .catch((error) => {
+        alert("Erro ao desativar usuário: " + error);
+      });
+  };
 </script>
 
 {% endblock %}
