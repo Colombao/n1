@@ -4,9 +4,27 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from flask_principal import Principal, Permission, RoleNeed, identity_loaded, UserNeed, Identity, AnonymousIdentity, identity_changed
+
 
 app = Flask(__name__)
 app.secret_key = 'senha secreta dos cookies 😎'
+
+
+# Configuração do Flask-Login
+login_manager = LoginManager(app)
+# Definir a view de login
+login_manager.login_view = "login"
+
+principals = Principal(app)
+
+admin_permission = Permission(RoleNeed("admin"))
+user_permission = Permission(RoleNeed("user"))
+
+users = {
+    "admin": {"password": "adminpass", "role": "admin"},
+    "user": {"password": "userpass", "role": "user"}
+}
 
 # Configuração do servidor de e-mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -71,6 +89,11 @@ def register():
 
     return jsonify({"message": "Usuário cadastrado com sucesso!", "status": "success"}), 201
 
+@identity_loaded.connect_via(app)
+def on_identity_loaded(sender, identity):
+    if current_user.is_authenticated: # Verifica se o usuário está autenticado
+        identity.provides.add(UserNeed(current_user.id)) # Adiciona o ID do usuário à identidade
+        identity.provides.add(RoleNeed(current_user.role))
 
 @app.route('/users')
 def users():
@@ -170,6 +193,16 @@ def reset_password(token):
 
     return render_template('reset_password.html')
 
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user() # Faz o logout do usuário
+    identity_changed.send(app, identity=AnonymousIdentity()) # Atualiza a identidade para usuário anônimo
+    return redirect(url_for("login"))
+ 
+@app.route("/forbidden")
+def forbidden():
+    return render_template("403.html"), 403
 
 @app.route('/home')
 def dashboard():
