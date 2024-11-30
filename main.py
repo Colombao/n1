@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_principal import Principal, Permission, RoleNeed, identity_loaded, UserNeed, Identity, AnonymousIdentity, identity_changed
 
 
@@ -71,6 +72,11 @@ def login():
             return jsonify({"message": "Login ou senha incorretos.", "status": "danger"}), 401
 
     return render_template('login.html')
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 @app.route('/register', methods=['POST'])
 def register():
